@@ -38,7 +38,7 @@ function DeckBadge({ name, size = 36 }: { name: string; size?: number }) {
 
 export default function TournamentDetail() {
   const { id } = useParams();
-  const { session, profile } = useAuth();
+  const { session } = useAuth();
   const navigate = useNavigate();
   const [t, setT] = useState<any>(null);
   const [matches, setMatches] = useState<any[]>([]);
@@ -46,6 +46,8 @@ export default function TournamentDetail() {
   const [opponent, setOpponent] = useState("");
   const [games, setGames] = useState<(string | null)[]>([null, null, null]);
   const [saving, setSaving] = useState(false);
+  const [editingMatch, setEditingMatch] = useState<any>(null); // null = sto aggiungendo un round nuovo
+  const [deletingTournament, setDeletingTournament] = useState(false);
 
   async function load() {
     const { data: tour } = await supabase.from("tournaments").select("*").eq("id", id).maybeSingle();
@@ -65,9 +67,10 @@ export default function TournamentDetail() {
   if (!t) return <div className="text-sm" style={{ color: "var(--text-dim)" }}>Caricamento torneo...</div>;
 
   const roundsPlayed = matches.length;
-  const round = roundsPlayed + 1;
+  const nextRound = roundsPlayed + 1;
+  const round = editingMatch ? editingMatch.round : nextRound;
   const roundsLimit = t.rounds ? Number(t.rounds) : null;
-  const canAddRound = !roundsLimit || roundsPlayed < roundsLimit;
+  const canAddRound = editingMatch || !roundsLimit || roundsPlayed < roundsLimit;
 
   const g = games;
   const g3locked = (g[0] === "W" && g[1] === "W") || (g[0] === "L" && g[1] === "L");
@@ -112,34 +115,88 @@ export default function TournamentDetail() {
     toast(`Stagione aggiornata a ${season}${t.placement ? ` · +${cp} CP` : ""}`);
   }
 
+  function resetForm() {
+    setEditingMatch(null);
+    setOpponent("");
+    setGames([null, null, null]);
+  }
+
+  async function startEdit(m: any) {
+    const { data: gs } = await supabase.from("games").select("*").eq("match_id", m.id).order("game_number", { ascending: true });
+    const arr: (string | null)[] = [null, null, null];
+    (gs || []).forEach((gRow: any) => { arr[gRow.game_number - 1] = gRow.result; });
+    setEditingMatch(m);
+    setOpponent(m.opponent_archetype);
+    setGames(arr);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  }
+
+  async function deleteMatch(matchId: string) {
+    if (!window.confirm("Eliminare questo round? L'azione non è reversibile.")) return;
+    const { error } = await supabase.from("matches").delete().eq("id", matchId);
+    if (error) { toast(error.message); return; }
+    if (editingMatch?.id === matchId) resetForm();
+    toast("Round eliminato");
+    load();
+  }
+
   async function saveRound() {
     if (!result || !opponent || !session?.user?.id) return;
     setSaving(true);
     const wins = g.filter((x) => x === "W").length;
     const losses = g.filter((x) => x === "L").length;
-    const { data: match, error } = await supabase
-      .from("matches")
-      .insert({
-        user_id: session.user.id,
-        tournament_id: t.id,
-        round,
-        opponent_archetype: opponent,
-        result: result.type,
-        score: result.score,
-        points: result.pts,
-      })
-      .select()
-      .single();
-    if (error) { toast(error.message); setSaving(false); return; }
-    const gameRows = g
-      .map((r, i) => (r ? { match_id: match.id, user_id: session.user.id, game_number: i + 1, result: r } : null))
-      .filter(Boolean);
-    if (gameRows.length) await supabase.from("games").insert(gameRows as any);
+
+    if (editingMatch) {
+      // aggiorno un round già esistente
+      const { error } = await supabase
+        .from("matches")
+        .update({ opponent_archetype: opponent, result: result.type, score: result.score, points: result.pts })
+        .eq("id", editingMatch.id);
+      if (error) { toast(error.message); setSaving(false); return; }
+      await supabase.from("games").delete().eq("match_id", editingMatch.id);
+      const gameRows = g
+        .map((r, i) => (r ? { match_id: editingMatch.id, user_id: session.user.id, game_number: i + 1, result: r } : null))
+        .filter(Boolean);
+      if (gameRows.length) await supabase.from("games").insert(gameRows as any);
+      toast("Round aggiornato ✅");
+    } else {
+      // creo un round nuovo
+      const { data: match, error } = await supabase
+        .from("matches")
+        .insert({
+          user_id: session.user.id,
+          tournament_id: t.id,
+          round: nextRound,
+          opponent_archetype: opponent,
+          result: result.type,
+          score: result.score,
+          points: result.pts,
+        })
+        .select()
+        .single();
+      if (error) { toast(error.message); setSaving(false); return; }
+      const gameRows = g
+        .map((r, i) => (r ? { match_id: match.id, user_id: session.user.id, game_number: i + 1, result: r } : null))
+        .filter(Boolean);
+      if (gameRows.length) await supabase.from("games").insert(gameRows as any);
+      toast("Round salvato ✅");
+    }
+
     setSaving(false);
-    setOpponent("");
-    setGames([null, null, null]);
-    toast("Round salvato ✅");
+    resetForm();
     load();
+  }
+
+  async function deleteTournament() {
+    if (!window.confirm(`Eliminare il torneo "${t.name}" e tutti i suoi round? L'azione non è reversibile.`)) return;
+    setDeletingTournament(true);
+    // elimino prima i match collegati (i game si cancellano da soli a cascata), poi il torneo
+    await supabase.from("matches").delete().eq("tournament_id", t.id);
+    const { error } = await supabase.from("tournaments").delete().eq("id", t.id);
+    setDeletingTournament(false);
+    if (error) { toast(error.message); return; }
+    toast("Torneo eliminato");
+    navigate("/tornei");
   }
 
   return (
@@ -182,11 +239,22 @@ export default function TournamentDetail() {
             </div>
           </div>
         </div>
+
+        <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--card-border)" }}>
+          <button
+            onClick={deleteTournament}
+            disabled={deletingTournament}
+            className="text-sm font-semibold"
+            style={{ color: "var(--red)" }}
+          >
+            🗑️ Elimina torneo
+          </button>
+        </div>
       </Card>
 
       <div className="flex items-center justify-between mb-1">
         <h3 className="font-bold">Matchup giocati</h3>
-        <span className="text-xs" style={{ color: "var(--text-dim)" }}>Round {Math.min(round, roundsLimit || round)}{roundsLimit ? " / " + roundsLimit : ""}</span>
+        <span className="text-xs" style={{ color: "var(--text-dim)" }}>Round {Math.min(nextRound, roundsLimit || nextRound)}{roundsLimit ? " / " + roundsLimit : ""}</span>
       </div>
       <div className="text-[11px] mb-2" style={{ color: "var(--text-dim)" }}>
         I punti dei round servono solo a determinare il piazzamento finale del torneo — i Championship Point si ottengono esclusivamente dal piazzamento, sopra.
@@ -198,15 +266,22 @@ export default function TournamentDetail() {
         matches.map((m) => {
           const col = m.result === "V" ? "var(--green)" : m.result === "S" ? "var(--red)" : "var(--amber)";
           const dot = m.result === "V" ? "🟢" : m.result === "S" ? "🔴" : "🟡";
+          const isEditing = editingMatch?.id === m.id;
           return (
-            <Card key={m.id} className="mb-2 flex items-center justify-between" style={{ borderLeft: `4px solid ${col}` }}>
-              <div className="flex items-center gap-2">
-                <DeckBadge name={m.opponent_archetype} size={28} />
-                <span className="text-sm font-semibold">R{m.round}</span>
-                <span className="text-sm" style={{ color: "var(--text-dim)" }}>{m.opponent_archetype}</span>
+            <Card key={m.id} className="mb-2" style={{ borderLeft: `4px solid ${col}`, background: isEditing ? "rgba(79,166,232,.10)" : undefined }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <DeckBadge name={m.opponent_archetype} size={28} />
+                  <span className="text-sm font-semibold">R{m.round}</span>
+                  <span className="text-sm" style={{ color: "var(--text-dim)" }}>{m.opponent_archetype}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <span>{dot} {m.score}</span><span className="font-bold" style={{ color: col }}>+{m.points}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-3 text-sm">
-                <span>{dot} {m.score}</span><span className="font-bold" style={{ color: col }}>+{m.points}</span>
+              <div className="flex items-center gap-4 mt-2 pt-2" style={{ borderTop: "1px solid var(--card-border)" }}>
+                <button onClick={() => startEdit(m)} className="text-xs font-semibold" style={{ color: "var(--blue)" }}>✏️ Modifica</button>
+                <button onClick={() => deleteMatch(m.id)} className="text-xs font-semibold" style={{ color: "var(--red)" }}>🗑️ Elimina</button>
               </div>
             </Card>
           );
@@ -216,7 +291,14 @@ export default function TournamentDetail() {
       {canAddRound ? (
         <>
           <Card className="mb-3 mt-4">
-            <div className="text-xs font-semibold mb-2" style={{ color: "var(--text-dim)" }}>Mazzo avversario · Round {round}</div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
+                {editingMatch ? `Modifica mazzo avversario · Round ${round}` : `Mazzo avversario · Round ${round}`}
+              </div>
+              {editingMatch && (
+                <button onClick={resetForm} className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>Annulla modifica</button>
+              )}
+            </div>
             <div className="flex items-center gap-3">
               <DeckBadge name={opponent || "?"} size={36} />
               <Input list="deck-suggestions" placeholder="Scrivi il mazzo avversario" value={opponent} onChange={(e: any) => setOpponent(e.target.value)} className="flex-1" />
@@ -251,10 +333,12 @@ export default function TournamentDetail() {
                   <span className="font-bold" style={{ color: result.col }}>+{result.pts} punti</span>
                 </div>
               </Card>
-              <Button cta className="py-3 mb-8 w-full" disabled={saving} onClick={saveRound}>Salva Round</Button>
+              <Button cta className="py-3 mb-8 w-full" disabled={saving} onClick={saveRound}>
+                {editingMatch ? "Aggiorna Round" : "Salva Round"}
+              </Button>
             </>
           ) : (
-            <div className="text-[11px] mb-8" style={{ color: "var(--text-dim)" }}>Scrivi il mazzo avversario e completa i game per registrare il round.</div>
+            <div className="text-[11px] mb-8" style={{ color: "var(--text-dim)" }}>Scrivi il mazzo avversario e completa i game per {editingMatch ? "aggiornare" : "registrare"} il round.</div>
           )}
         </>
       ) : (
