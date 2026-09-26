@@ -65,7 +65,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <header className="flex items-center justify-between px-5 md:px-8 py-4" style={{ borderBottom: "1px solid var(--card-border)" }}>
           <div>
             <div className="text-lg md:text-xl font-bold">👋 Ciao, {profile?.name || "Allenatore"}!</div>
-            <div className="text-sm" style={{ color: "var(--text-dim)" }}>Stagione {profile?.season || 2027} ▾</div>
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden sm:flex items-center gap-1.5 text-sm font-medium rounded-full px-3 py-1.5" style={{ background: "rgba(34,197,94,.12)", color: "var(--green)" }}>

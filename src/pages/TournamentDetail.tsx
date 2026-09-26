@@ -104,6 +104,14 @@ export default function TournamentDetail() {
     toast(placement ? `Piazzamento salvato · +${cp} CP` : "Piazzamento rimosso");
   }
 
+  async function updateSeason(val: string) {
+    const season = Number(val);
+    const cp = t.placement ? (await estimateCP(t.event_type, Number(t.participants), Number(t.placement), season)) || 0 : t.cp_earned;
+    setT((prev: any) => ({ ...prev, season, cp_earned: cp }));
+    await supabase.from("tournaments").update({ season, cp_earned: cp }).eq("id", t.id);
+    toast(`Stagione aggiornata a ${season}${t.placement ? ` · +${cp} CP` : ""}`);
+  }
+
   async function saveRound() {
     if (!result || !opponent || !session?.user?.id) return;
     setSaving(true);
@@ -159,10 +167,20 @@ export default function TournamentDetail() {
         </div>
 
         <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--card-border)" }}>
-          <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
-            Piazzamento finale {!t.placement && "(non ancora inserito)"}
-          </label>
-          <Input type="number" placeholder="Es. 5" defaultValue={t.placement || ""} onBlur={(e: any) => updatePlacement(e.target.value)} className="mt-1 p-2 text-sm" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
+                Piazzamento finale {!t.placement && "(non ancora inserito)"}
+              </label>
+              <Input type="number" placeholder="Es. 5" defaultValue={t.placement || ""} onBlur={(e: any) => updatePlacement(e.target.value)} className="mt-1 p-2 text-sm" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>Stagione</label>
+              <select value={t.season} onChange={(e: any) => updateSeason(e.target.value)} className="w-full mt-1 p-2 text-sm">
+                {[2025, 2026, 2027, 2028].map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
         </div>
       </Card>
 

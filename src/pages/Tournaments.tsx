@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import { Card, Badge, Button, EmptyState } from "../components/ui";
+import { seasonForDate } from "../lib/cp";
 import { useNavigate } from "react-router-dom";
 
 const CAT_BADGE: any = {
@@ -30,9 +31,10 @@ function DeckBadge({ name, size = 36 }: { name: string; size?: number }) {
 }
 
 export default function Tournaments() {
-  const { session, profile } = useAuth();
+  const { session } = useAuth();
   const [rows, setRows] = useState<any[]>([]);
   const navigate = useNavigate();
+  const [season, setSeason] = useState(() => seasonForDate(new Date().toISOString().slice(0, 10)));
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -40,16 +42,21 @@ export default function Tournaments() {
       .from("tournaments")
       .select("*")
       .eq("user_id", session.user.id)
-      .eq("season", profile?.season || 2027)
+      .eq("season", season)
       .order("event_date", { ascending: false })
       .then(({ data }) => setRows(data || []));
-  }, [session, profile]);
+  }, [session, season]);
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <h2 className="text-xl font-bold">Tornei</h2>
         <Button cta className="text-sm" onClick={() => navigate("/tornei/nuovo")}>+ Nuovo</Button>
+      </div>
+      <div className="flex items-center gap-2 text-sm mb-4" style={{ color: "var(--text-dim)" }}>
+        <button onClick={() => setSeason((s) => s - 1)} className="opacity-70 hover:opacity-100">◀</button>
+        <span className="font-semibold" style={{ color: "var(--text)" }}>Stagione {season}</span>
+        <button onClick={() => setSeason((s) => s + 1)} className="opacity-70 hover:opacity-100">▶</button>
       </div>
       <div className="grid gap-3">
         {rows.length === 0 ? (

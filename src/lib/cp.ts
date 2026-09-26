@@ -19,6 +19,17 @@ export const EVENT_TYPES: EventType[] = [
   "International Championship",
 ];
 
+// Calendario stagionale Play! Pokémon: da settembre a giugno appartiene alla
+// stagione dell'anno successivo (es. settembre 2026 → giugno 2027 = "Stagione 2027").
+// Luglio e agosto sono considerati parte della stagione appena conclusa.
+export function seasonForDate(dateStr: string): number {
+  if (!dateStr) return new Date().getFullYear();
+  const d = new Date(dateStr + "T00:00:00");
+  const month = d.getMonth() + 1; // 1-12
+  const year = d.getFullYear();
+  return month >= 9 ? year + 1 : year;
+}
+
 function bracketContains(bracket: string, placement: number): boolean {
   if (bracket.includes("-")) {
     const [lo, hi] = bracket.split("-").map(Number);

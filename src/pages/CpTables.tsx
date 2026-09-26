@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { useAuth } from "../contexts/AuthContext";
 import { Card, Badge } from "../components/ui";
+import { seasonForDate } from "../lib/cp";
 
 const CAT_BADGE: any = {
   "League Challenge": "b-lc",
@@ -14,8 +14,7 @@ const EVENT_TYPES = ["League Challenge", "League Cup", "Regional Championship", 
 type Row = { event_type: string; placement_bracket: string; bracket_order: number; kicker: number; cp: number; is_official: boolean };
 
 export default function CpTables() {
-  const { profile } = useAuth();
-  const season = profile?.season || 2027;
+  const [season, setSeason] = useState(() => seasonForDate(new Date().toISOString().slice(0, 10)));
   const [tab, setTab] = useState<"cp" | "bfl">("cp");
   const [rows, setRows] = useState<Row[]>([]);
   const [bfl, setBfl] = useState<number | null>(null);
@@ -33,8 +32,15 @@ export default function CpTables() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-4">Tabelle CP &amp; Requisiti</h2>
-      <div className="seg mb-4">
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="text-xl font-bold">Tabelle CP &amp; Requisiti</h2>
+        <div className="flex items-center gap-2 text-sm" style={{ color: "var(--text-dim)" }}>
+          <button onClick={() => setSeason((s) => s - 1)} className="opacity-70 hover:opacity-100">◀</button>
+          <span className="font-semibold" style={{ color: "var(--text)" }}>{season}</span>
+          <button onClick={() => setSeason((s) => s + 1)} className="opacity-70 hover:opacity-100">▶</button>
+        </div>
+      </div>
+      <div className="seg mb-4 mt-3">
         <button className={tab === "cp" ? "on" : ""} onClick={() => setTab("cp")}>CP per piazzamento</button>
         <button className={tab === "bfl" ? "on" : ""} onClick={() => setTab("bfl")}>BFL</button>
       </div>

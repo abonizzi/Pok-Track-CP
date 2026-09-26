@@ -2,17 +2,19 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import { Card, StatCard, Button } from "../components/ui";
+import { seasonForDate } from "../lib/cp";
 import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
-  const { profile, session } = useAuth();
+  const { session } = useAuth();
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const season = profile?.season || 2027;
+  const [season, setSeason] = useState(() => seasonForDate(new Date().toISOString().slice(0, 10)));
 
   useEffect(() => {
     if (!session?.user?.id) return;
+    setLoading(true);
     supabase
       .from("tournaments")
       .select("*")
@@ -47,7 +49,11 @@ export default function Dashboard() {
       <div className="card p-6" style={{ background: "linear-gradient(135deg,var(--sidebar),#132550)" }}>
         <div className="flex items-center justify-between text-white/70 text-sm font-semibold tracking-wide mb-2">
           <span>🏅 CHAMPIONSHIP POINTS</span>
-          <span>{season}</span>
+          <span className="flex items-center gap-2">
+            <button onClick={() => setSeason((s) => s - 1)} className="opacity-70 hover:opacity-100">◀</button>
+            {season}
+            <button onClick={() => setSeason((s) => s + 1)} className="opacity-70 hover:opacity-100">▶</button>
+          </span>
         </div>
         <div className="text-white text-3xl font-extrabold mb-3">{cp} CP</div>
         <div className="progress-track h-3" style={{ position: "relative" }}>

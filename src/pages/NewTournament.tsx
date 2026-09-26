@@ -2,13 +2,14 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import { Card, Button, Input, Select, toast } from "../components/ui";
-import { estimateCP, EVENT_TYPES, EventType } from "../lib/cp";
+import { estimateCP, EVENT_TYPES, EventType, seasonForDate } from "../lib/cp";
 import { useNavigate } from "react-router-dom";
 
+const SEASON_OPTIONS = [2025, 2026, 2027, 2028];
+
 export default function NewTournament() {
-  const { session, profile } = useAuth();
+  const { session } = useAuth();
   const navigate = useNavigate();
-  const season = profile?.season || 2027;
 
   const [form, setForm] = useState({
     event_type: EVENT_TYPES[0] as EventType,
@@ -20,7 +21,9 @@ export default function NewTournament() {
     participants: "",
     rounds: "",
     placement: "",
+    season: seasonForDate(new Date().toISOString().slice(0, 10)),
   });
+  const [seasonTouched, setSeasonTouched] = useState(false);
   const [cpEstimate, setCpEstimate] = useState<number | null>(null);
   const [deckNames, setDeckNames] = useState<string[]>([]);
 
@@ -33,16 +36,25 @@ export default function NewTournament() {
     });
   }, [session]);
 
+  // La stagione si aggiorna da sola in base alla data (settembre→giugno = stagione successiva),
+  // ma solo finché l'utente non la cambia manualmente.
+  useEffect(() => {
+    if (form.event_date && !seasonTouched) {
+      set("season", seasonForDate(form.event_date));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.event_date]);
+
   useEffect(() => {
     const p = Number(form.participants), pl = Number(form.placement);
     if (p && pl) {
-      estimateCP(form.event_type, p, pl, season).then(setCpEstimate);
+      estimateCP(form.event_type, p, pl, Number(form.season)).then(setCpEstimate);
     } else {
       setCpEstimate(null);
     }
-  }, [form.event_type, form.participants, form.placement, season]);
+  }, [form.event_type, form.participants, form.placement, form.season]);
 
-  function set(k: string, v: string) { setForm((f) => ({ ...f, [k]: v })); }
+  function set(k: string, v: any) { setForm((f) => ({ ...f, [k]: v })); }
 
   async function save() {
     if (!form.name || !form.event_date) { toast("Compila nome e data del torneo"); return; }
@@ -59,7 +71,7 @@ export default function NewTournament() {
       rounds: Number(form.rounds) || null,
       placement: Number(form.placement) || null,
       cp_earned: cpEstimate || 0,
-      season,
+      season: Number(form.season),
     });
     if (error) { toast(error.message); return; }
     toast("Torneo salvato ✅");
@@ -72,12 +84,24 @@ export default function NewTournament() {
       <Card className="grid gap-4 p-5">
         <h2 className="text-xl font-bold">Nuovo Torneo</h2>
 
-        <div>
-          <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>Tipo evento</label>
-          <Select value={form.event_type} onChange={(e: any) => set("event_type", e.target.value)}>
-            {EVENT_TYPES.map((t) => <option key={t}>{t}</option>)}
-          </Select>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>Tipo evento</label>
+            <Select value={form.event_type} onChange={(e: any) => set("event_type", e.target.value)}>
+              {EVENT_TYPES.map((t) => <option key={t}>{t}</option>)}
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>Stagione</label>
+            <Select value={form.season} onChange={(e: any) => { setSeasonTouched(true); set("season", Number(e.target.value)); }}>
+              {SEASON_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </Select>
+          </div>
         </div>
+        <div className="text-[11px] -mt-2" style={{ color: "var(--text-dim)" }}>
+          Calcolata in automatico dalla data (settembre–giugno = stagione successiva) — puoi cambiarla se serve.
+        </div>
+
         <div>
           <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>Nome torneo</label>
           <Input placeholder="Es. Bologna League Challenge" value={form.name} onChange={(e: any) => set("name", e.target.value)} />
