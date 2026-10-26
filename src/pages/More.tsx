@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import { Card } from "../components/ui";
 
 const ITEMS = [
+  { to: "/mazzi", label: "Liste Mazzo", icon: "🃏" },
   { to: "/history", label: "Cronologia", icon: "📜" },
   { to: "/simulatore", label: "Simulatore", icon: "🧮" },
   { to: "/tabelle", label: "Tabelle CP", icon: "📋" },

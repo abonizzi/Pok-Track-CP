@@ -4,12 +4,13 @@ export function Card({ children, className = "", style = {} }: any) {
   return <div className={`card p-4 ${className}`} style={style}>{children}</div>;
 }
 
-export function Button({ children, onClick, className = "", cta = false, type = "button", disabled = false }: any) {
+export function Button({ children, onClick, className = "", cta = false, type = "button", disabled = false, style = {} }: any) {
   return (
     <button
       type={type}
       disabled={disabled}
       onClick={onClick}
+      style={style}
       className={`${cta ? "btn-cta" : "rounded-xl font-semibold"} px-4 py-2.5 ${className}`}
     >
       {children}

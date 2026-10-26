@@ -79,9 +79,9 @@ export default function CpTables() {
             );
           })}
           <div className="text-[11px]" style={{ color: "var(--text-dim)" }}>
-            Il Kicker indica il numero minimo di partecipanti richiesto: se il torneo ne ha meno, si ricevono i CP
-            della fascia migliore comunque raggiunta dai partecipanti effettivi. Valori dalla tabella cp_table —
-            aggiornabili in Supabase senza toccare il frontend.
+            Il Kicker indica il numero minimo di partecipanti richiesto perché la propria fascia di piazzamento
+            assegni i CP indicati: se il torneo ne ha meno, quella fascia non assegna alcun CP (0) — non esiste
+            nessuna fascia di ripiego. Valori dalla tabella cp_table — aggiornabili in Supabase senza toccare il frontend.
           </div>
         </div>
       )}

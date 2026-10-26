@@ -41,9 +41,27 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- Nota: i mazzi (propri e avversari) si scrivono liberamente nei campi `deck` di
--- `tournaments` e `opponent_archetype` di `matches` — niente più elenco fisso di
--- archetipi da mantenere/aggiornare a ogni rotazione di metagame.
+-- ------------------------------------------------------------
+-- CATEGORIE MAZZI (elenco personale dell'utente, gestito da Impostazioni)
+-- Illimitato, per selezionare rapidamente un mazzo già usato invece di
+-- riscriverlo a mano ogni volta (evita "Charizard ex" vs "charizard EX").
+-- ------------------------------------------------------------
+create table if not exists public.deck_categories (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null,
+  created_at timestamptz not null default now(),
+  unique (user_id, name)
+);
+
+alter table public.deck_categories enable row level security;
+
+create policy "Deck categories: select own" on public.deck_categories
+  for select using (auth.uid() = user_id);
+create policy "Deck categories: insert own" on public.deck_categories
+  for insert with check (auth.uid() = user_id);
+create policy "Deck categories: delete own" on public.deck_categories
+  for delete using (auth.uid() = user_id);
 
 -- ------------------------------------------------------------
 -- TABELLE CP UFFICIALI (globali, sola lettura)
@@ -139,6 +157,7 @@ create table if not exists public.tournaments (
   placement int,
   cp_earned int default 0,
   season int not null default extract(year from now())::int,
+  cut_type text check (cut_type in ('top4','top8') or cut_type is null),
   created_at timestamptz not null default now()
 );
 
@@ -161,8 +180,11 @@ create table if not exists public.matches (
   user_id uuid not null references auth.users(id) on delete cascade,
   tournament_id uuid references public.tournaments(id) on delete set null,
   round int not null,
-  opponent_archetype text not null,
+  opponent_archetype text not null, -- valore speciale 'BYE' per i turni di riposo
   opponent_type text,
+  phase text not null default 'swiss' check (phase in ('swiss','topcut')),
+  day int not null default 1 check (day in (1,2)), -- rilevante solo per eventi multi-day (es. Regionali)
+  topcut_stage int, -- posizione nel bracket a eliminazione diretta (1=primo turno, crescente)
   result text not null check (result in ('V','S','P')),
   score text,
   points int not null default 0,
@@ -223,9 +245,39 @@ create policy "Feedback: select own" on public.feedback
   for select using (auth.uid() = user_id);
 
 -- ------------------------------------------------------------
+-- LISTE MAZZO (60 carte: Pokémon/Trainer/Energia, dati giocatore, stampa/PDF)
+-- ------------------------------------------------------------
+create table if not exists public.decklists (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  deck_name text not null default '',
+  player_first_name text,
+  player_last_name text,
+  player_birth_year text,
+  player_id text,
+  pokemon jsonb not null default '[]'::jsonb,
+  trainer jsonb not null default '[]'::jsonb,
+  energy jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.decklists enable row level security;
+
+create policy "Decklists: select own" on public.decklists
+  for select using (auth.uid() = user_id);
+create policy "Decklists: insert own" on public.decklists
+  for insert with check (auth.uid() = user_id);
+create policy "Decklists: update own" on public.decklists
+  for update using (auth.uid() = user_id);
+create policy "Decklists: delete own" on public.decklists
+  for delete using (auth.uid() = user_id);
+
+-- ------------------------------------------------------------
 -- Indici utili
 -- ------------------------------------------------------------
 create index if not exists idx_tournaments_user on public.tournaments(user_id);
 create index if not exists idx_matches_user on public.matches(user_id);
 create index if not exists idx_matches_tournament on public.matches(tournament_id);
 create index if not exists idx_games_match on public.games(match_id);
+create index if not exists idx_decklists_user on public.decklists(user_id);

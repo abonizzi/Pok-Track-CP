@@ -6,6 +6,7 @@ import { supabase } from "../lib/supabase";
 const NAV = [
   { to: "/", label: "Home", icon: "🏠" },
   { to: "/tornei", label: "Tornei", icon: "🏆" },
+  { to: "/mazzi", label: "Liste Mazzo", icon: "🃏" },
   { to: "/history", label: "Cronologia", icon: "📜" },
   { to: "/statistiche", label: "Statistiche", icon: "📊" },
   { to: "/simulatore", label: "Simulatore", icon: "🧮" },

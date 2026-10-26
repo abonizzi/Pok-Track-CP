@@ -49,11 +49,30 @@ poi rilancia `npm run build`.
 
 ### 2. Aggiorna le tabelle CP con i valori ufficiali che mi hai passato
 
-Nel Table Editor di Supabase (o via SQL) aggiorna/aggiungi righe in `cp_table` e
-`kicker_table` per la stagione corrente con i valori ufficiali Play! Pokémon (League
-Challenge, League Cup, Regional — già integrati nell'app demo — e International non
-appena me lo mandi). Nessuna modifica al frontend necessaria: i valori vengono letti
-dal database a ogni stima CP.
+Nel Table Editor di Supabase (o via SQL) aggiorna/aggiungi righe in `cp_table` per la
+stagione corrente con i valori ufficiali Play! Pokémon (League Challenge, League Cup,
+Regional — già integrati — e International non appena me lo mandi). Nessuna modifica
+al frontend necessaria: i valori vengono letti dal database a ogni stima CP.
+
+### 2bis. Aggiorna il database con le nuove funzionalità (mazzi salvati, Swiss/Top Cut, BYE, Day 1/2)
+
+Se il tuo progetto Supabase esiste già (hai eseguito `schema.sql` in passato), esegui **una volta sola**
+anche `supabase/migrations/002_deck_categories_phase_day.sql` nell'SQL Editor: aggiunge la tabella dei
+mazzi salvati e le colonne `phase`/`day` ai round. **Senza questo passaggio l'app darà errore** quando
+provi a salvare un round, perché il codice si aspetta queste colonne. Se stai partendo da zero con
+`schema.sql` aggiornato, non serve: è già tutto incluso.
+
+### 2ter. Aggiorna il database con il bracket Top Cut (Top 4 / Top 8)
+
+Esegui **una volta sola** anche `supabase/migrations/003_topcut_bracket.sql` nell'SQL Editor: aggiunge
+il tipo di taglio (`cut_type`) sul torneo e lo stage del bracket (`topcut_stage`) sui round. Come per la
+migrazione 002, se parti da zero con `schema.sql` aggiornato non serve.
+
+### 2quater. Aggiorna il database con le Liste Mazzo
+
+Esegui **una volta sola** anche `supabase/migrations/004_decklists.sql` nell'SQL Editor: aggiunge la
+tabella `decklists` (liste da 60 carte, dati giocatore, stampa/PDF) nella sezione "Liste Mazzo" dell'app.
+Come per le altre migrazioni, se parti da zero con `schema.sql` aggiornato non serve.
 
 ### 3. Configura Resend per il form di feedback
 

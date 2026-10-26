@@ -2,8 +2,10 @@
 //
 // Meccanica ufficiale del Kicker: ogni fascia di piazzamento richiede un numero
 // minimo di partecipanti (kicker) per assegnare i CP indicati. Se il torneo ha
-// meno partecipanti, si ricevono i CP della fascia con indice (bracket_order)
-// più basso il cui kicker è comunque soddisfatto dal numero reale di partecipanti.
+// MENO partecipanti del kicker richiesto dalla propria fascia, quella fascia
+// non assegna alcun CP (0) — non esiste nessun ripiego su una fascia diversa.
+// Es: arrivi 3° in una League Cup da 6 giocatori. La fascia "3°-4°" richiede un
+// kicker di 8 partecipanti, non soddisfatto → 0 CP per questo piazzamento.
 import { supabase } from "./supabase";
 
 export type EventType =
@@ -61,14 +63,7 @@ export async function estimateCP(
   const myRow = typedRows.find((r) => bracketContains(r.placement_bracket, placement));
   if (!myRow) return 0; // piazzamento fuori dalle fasce che assegnano CP
 
-  // fascia più "premiante" (bracket_order più basso, cioè più CP) il cui kicker
-  // è soddisfatto dal numero reale di partecipanti, tra tutte le fasce disponibili.
-  let bestOrder = 0;
-  for (const r of typedRows) {
-    if (r.kicker <= participants && r.bracket_order > bestOrder) bestOrder = r.bracket_order;
-  }
+  if (Number(participants) < myRow.kicker) return 0; // kicker della propria fascia non soddisfatto
 
-  const usedOrder = Math.min(myRow.bracket_order, bestOrder);
-  const usedRow = typedRows.find((r) => r.bracket_order === usedOrder) || myRow;
-  return usedRow.cp;
+  return myRow.cp;
 }

@@ -3,6 +3,8 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import { Card, Button, Input, Select, toast } from "../components/ui";
 import { estimateCP, EVENT_TYPES, EventType, seasonForDate } from "../lib/cp";
+import { useDeckCategories } from "../hooks/useDeckCategories";
+import DeckSelect from "../components/DeckSelect";
 import { useNavigate } from "react-router-dom";
 
 const SEASON_OPTIONS = [2025, 2026, 2027, 2028];
@@ -10,6 +12,7 @@ const SEASON_OPTIONS = [2025, 2026, 2027, 2028];
 export default function NewTournament() {
   const { session } = useAuth();
   const navigate = useNavigate();
+  const { decks, addDeck } = useDeckCategories();
 
   const [form, setForm] = useState({
     event_type: EVENT_TYPES[0] as EventType,
@@ -25,16 +28,6 @@ export default function NewTournament() {
   });
   const [seasonTouched, setSeasonTouched] = useState(false);
   const [cpEstimate, setCpEstimate] = useState<number | null>(null);
-  const [deckNames, setDeckNames] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (!session?.user?.id) return;
-    supabase.from("tournaments").select("deck").eq("user_id", session.user.id).then(({ data }) => {
-      const names = new Set<string>();
-      (data || []).forEach((d: any) => d.deck && names.add(d.deck));
-      setDeckNames([...names]);
-    });
-  }, [session]);
 
   // La stagione si aggiorna da sola in base alla data (settembre→giugno = stagione successiva),
   // ma solo finché l'utente non la cambia manualmente.
@@ -108,10 +101,7 @@ export default function NewTournament() {
         </div>
         <div>
           <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>Mazzo usato</label>
-          <Input list="deck-suggestions" placeholder="Es. Charizard ex" value={form.deck} onChange={(e: any) => set("deck", e.target.value)} />
-          <datalist id="deck-suggestions">
-            {deckNames.map((n) => <option key={n} value={n} />)}
-          </datalist>
+          <DeckSelect value={form.deck} onChange={(v) => set("deck", v)} decks={decks} onAddNew={addDeck} placeholder="Seleziona il tuo mazzo" />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div><label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>Data</label><Input type="date" value={form.event_date} onChange={(e: any) => set("event_date", e.target.value)} /></div>

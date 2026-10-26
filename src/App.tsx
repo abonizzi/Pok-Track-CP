@@ -14,6 +14,8 @@ import CpTables from "./pages/CpTables";
 import Simulator from "./pages/Simulator";
 import Settings from "./pages/Settings";
 import More from "./pages/More";
+import Decklists from "./pages/Decklists";
+import DecklistEditor from "./pages/DecklistEditor";
 
 export default function App() {
   const { session, loading } = useAuth();
@@ -41,6 +43,9 @@ export default function App() {
                 <Route path="/tornei" element={<Tournaments />} />
                 <Route path="/tornei/nuovo" element={<NewTournament />} />
                 <Route path="/tornei/:id" element={<TournamentDetail />} />
+                <Route path="/mazzi" element={<Decklists />} />
+                <Route path="/mazzi/nuovo" element={<DecklistEditor />} />
+                <Route path="/mazzi/:id" element={<DecklistEditor />} />
                 <Route path="/history" element={<History />} />
                 <Route path="/statistiche" element={<Stats />} />
                 <Route path="/tabelle" element={<CpTables />} />
