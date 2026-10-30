@@ -122,12 +122,6 @@ export default function Settings() {
               segnalato nella barra della Dashboard.
             </p>
 
-            <p className="text-[11px]">
-              Nota: il valore <strong>BFL (Best Finish Limit)</strong> mostrato nella pagina Tabelle CP è
-              anch'esso provvisorio e al momento <strong>non</strong> viene applicato nel calcolo del
-              totale CP in Dashboard — se la regola ufficiale prevede un tetto ai risultati che contano
-              in una stagione, il totale potrebbe non rifletterlo ancora.
-            </p>
 
             <button onClick={() => navigate("/tabelle")} className="text-sm font-semibold text-left" style={{ color: "var(--blue)" }}>
               Vedi tutte le tabelle CP →

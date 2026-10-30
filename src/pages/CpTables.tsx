@@ -15,9 +15,7 @@ type Row = { event_type: string; placement_bracket: string; bracket_order: numbe
 
 export default function CpTables() {
   const [season, setSeason] = useState(() => seasonForDate(new Date().toISOString().slice(0, 10)));
-  const [tab, setTab] = useState<"cp" | "bfl">("cp");
   const [rows, setRows] = useState<Row[]>([]);
-  const [bfl, setBfl] = useState<number | null>(null);
 
   useEffect(() => {
     supabase
@@ -26,8 +24,6 @@ export default function CpTables() {
       .eq("season", season)
       .order("bracket_order", { ascending: true })
       .then(({ data }) => setRows((data as Row[]) || []));
-    supabase.from("bfl_table").select("*").eq("season", season).maybeSingle()
-      .then(({ data }) => setBfl(data?.best_finish_limit ?? null));
   }, [season]);
 
   return (
@@ -40,13 +36,9 @@ export default function CpTables() {
           <button onClick={() => setSeason((s) => s + 1)} className="opacity-70 hover:opacity-100">▶</button>
         </div>
       </div>
-      <div className="seg mb-4 mt-3">
-        <button className={tab === "cp" ? "on" : ""} onClick={() => setTab("cp")}>CP per piazzamento</button>
-        <button className={tab === "bfl" ? "on" : ""} onClick={() => setTab("bfl")}>BFL</button>
-      </div>
+      <div className="mb-3" />
 
-      {tab === "cp" && (
-        <div className="grid gap-3">
+      <div className="grid gap-3">
           {EVENT_TYPES.map((evt) => {
             const evtRows = rows.filter((r) => r.event_type === evt);
             if (evtRows.length === 0) return null;
@@ -83,18 +75,8 @@ export default function CpTables() {
             assegni i CP indicati: se il torneo ne ha meno, quella fascia non assegna alcun CP (0) — non esiste
             nessuna fascia di ripiego. Valori dalla tabella cp_table — aggiornabili in Supabase senza toccare il frontend.
           </div>
-        </div>
-      )}
+      </div>
 
-      {tab === "bfl" && (
-        <Card>
-          <div className="font-semibold mb-1">Best Finish Limit (BFL)</div>
-          <div className="text-2xl font-extrabold mb-2">{bfl ?? "-"} CP</div>
-          <div className="text-sm" style={{ color: "var(--text-dim)" }}>
-            Limite massimo di piazzamento considerato per ottenere CP in un singolo evento (valore provvisorio, tabella bfl_table).
-          </div>
-        </Card>
-      )}
     </div>
   );
 }

@@ -83,18 +83,9 @@ create table if not exists public.cp_table (
   is_official boolean not null default true
 );
 
-create table if not exists public.bfl_table (
-  id uuid primary key default uuid_generate_v4(),
-  season int not null default extract(year from now())::int,
-  best_finish_limit int not null
-);
-
 alter table public.cp_table enable row level security;
-alter table public.bfl_table enable row level security;
 
 create policy "CP table: read all authenticated" on public.cp_table
-  for select using (auth.role() = 'authenticated');
-create policy "BFL table: read all authenticated" on public.bfl_table
   for select using (auth.role() = 'authenticated');
 
 -- League Challenge e League Cup: valori UFFICIALI Play! Pokémon 2027
@@ -135,9 +126,6 @@ insert into public.cp_table (event_type, placement_bracket, bracket_order, kicke
   ('International Championship','9-16',4,32,15,2027,false),
   ('International Championship','17-32',5,64,8,2027,false),
   ('International Championship','33-64',6,128,4,2027,false)
-on conflict do nothing;
-
-insert into public.bfl_table (season, best_finish_limit) values (2027, 15)
 on conflict do nothing;
 
 -- ------------------------------------------------------------
