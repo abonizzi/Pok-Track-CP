@@ -10,11 +10,11 @@ Stack: **React + TypeScript + Vite + Tailwind CSS**, **Supabase** (database Post
 
 ```
 public/
-  favicon.svg              icona per il tab del browser
-  icon-192.png              icona PWA 192×192 (Android/Chrome)
-  icon-512.png              icona PWA 512×512 (Android/Chrome, splash screen)
-  icon-512-maskable.png     icona "maskable" 512×512 (Android adattiva, safe-zone rispettata)
-  apple-touch-icon.png      icona 180×180 per "Aggiungi a Home" su iOS/Safari
+  favicon-ball.svg         icona per il tab del browser
+  icon-ball-192.png         icona PWA 192×192 (Android/Chrome)
+  icon-ball-512.png         icona PWA 512×512 (Android/Chrome, splash screen)
+  icon-ball-maskable-512.png icona "maskable" 512×512 (Android adattiva, safe-zone rispettata)
+  apple-touch-icon-ball.png  icona 180×180 per "Aggiungi a Home" su iOS/Safari
 ```
 
 Il manifest PWA (nome, colori, icone) è generato automaticamente in fase di build da
