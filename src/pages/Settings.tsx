@@ -113,8 +113,7 @@ export default function Settings() {
 
             <p>
               Sono già caricati i valori <strong style={{ color: "var(--text)" }}>ufficiali 2027</strong> per
-              League Challenge, League Cup e Regional Championship. L'International Championship è ancora
-              <strong style={{ color: "var(--amber)" }}> provvisorio</strong>, in attesa dei dati ufficiali.
+              League Challenge, League Cup, Regional Championship e International Championship.
             </p>
 
             <p>
